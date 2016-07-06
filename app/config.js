@@ -56,8 +56,8 @@ db.knex.schema.hasTable('joined_table').then(function(exists) {
   if (!exists) {
     db.knex.schema.createTable('joined_table', function(item) {
       item.increments('id').primary();
-      item.integer('user_id').references('id').inTable('users');
-      item.integer('url_id').references('id').inTable('urls');
+      item.integer('userid').references('id').inTable('users');
+      item.integer('urlid').references('id').inTable('urls');
       item.integer('clicks');
     }).then(function(table) {
       console.log('Created Table', table);

@@ -1,3 +1,5 @@
+// var db = require('.app/config');
+
 Shortly.LinksView = Backbone.View.extend({
   className: 'links',
 
@@ -12,6 +14,7 @@ Shortly.LinksView = Backbone.View.extend({
   },
 
   addAll: function() {
+    console.log(this.collection);
     this.collection.forEach(this.addOne, this);
   },
 

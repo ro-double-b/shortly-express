@@ -10,6 +10,7 @@ var User = require('./app/models/user');
 var Links = require('./app/collections/links');
 var Link = require('./app/models/link');
 var Click = require('./app/models/click');
+var Entry = require('./app/models/joinedtable');
 
 var app = express();
 
@@ -59,30 +60,59 @@ function(req, res) {
 app.post('/links', 
 function(req, res) {
   var uri = req.body.url;
+  var user = app.locals.user;
+  var userid = new User({username: user}).fetch().then(function(user) {
+    user.get('id');
+  });
 
   if (!util.isValidUrl(uri)) {
     console.log('Not a valid url: ', uri);
     return res.sendStatus(404);
   }
-
+  //check the website table first
   new Link({ url: uri }).fetch().then(function(found) {
+    //if the website if found
     if (found) {
+      var urlid = new Link({url: uri}).fetch().then(function(url) {
+        url.get('id');
+      });
+      // query the join database for the userID
+      new Entry({
+        userid: userid
+      }).fetch().then(function(tableItems) {
+        console.log('tableItems', tableItems);
+        // if that query has website foreign key
+        if (tableItems.urlid === urlid) { 
+          // do nothing
+          return; 
+        } else { // create new entry in join database with user/url foreign key
+          Entry.create({
+            userid: userid,
+            urlid: urlid
+          });
+        }
+      });  
       res.status(200).send(found.attributes);
     } else {
       util.getUrlTitle(uri, function(err, title) {
         if (err) {
-          console.log('Error reading URL heading: ', err);
+          // console.log('Error reading URL heading: ', err);
           return res.sendStatus(404);
         }
-
         Links.create({
           url: uri,
           title: title,
           baseUrl: req.headers.origin
         })
         .then(function(newLink) {
+          // console.log('newlink', newLink);
+          Entry.create({
+            userid: userid,
+            urlid: newLink.attributes.id
+          });
           res.status(200).send(newLink);
         });
+        //create entry in joined table
       });
     }
   });
@@ -119,6 +149,7 @@ app.post('/signup', function(request, response) {
         username: username,
         password: password
       }).then(function(addedUser) {
+        console.log('user.create', addedUser)
         request.session.user = username;
         app.locals.user = username;
         console.log('Session user is...', request.session.user);
@@ -195,3 +226,4 @@ app.get('/*', function(req, res) {
 
 console.log('Shortly is listening on 4568');
 app.listen(4568);
+
